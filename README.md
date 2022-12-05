@@ -4,22 +4,22 @@ Siqi Li, SMAST
 2022-12-06
 
 ### Use HYCOM dataset to run FVCOM case
-    + Create initial TS file
-    + Create nesting forcing file
+    Create initial TS file
+    Create nesting forcing file
 
 ### The package including:
-    + hycom2fvcom_download_hycom.sh
-    + hycom2fvcom_iniTS_create.m
-    + hycom2fvcom_nesting_select.m
-    + hycom2fvcom_nesting_extract_tide.m
-    + hycom2fvcom_nesting_create.m
+    hycom2fvcom_download_hycom.sh
+    hycom2fvcom_iniTS_create.m
+    hycom2fvcom_nesting_select.m
+    hycom2fvcom_nesting_extract_tide.m
+    hycom2fvcom_nesting_create.m
 
 
 ### Required MATLAB toolbox
-    + https://github.com/SiqiLiOcean/matFVCOM
-    + https://github.com/SiqiLiOcean/matFigure
-    + https://www.eoas.ubc.ca/~rich/t_tide/t_tide_v1.4beta.zip
-    + https://github.com/EarthAndSpaceResearch/TMD_Matlab_Toolbox_v2.5
+    https://github.com/SiqiLiOcean/matFVCOM
+    https://github.com/SiqiLiOcean/matFigure
+    https://www.eoas.ubc.ca/~rich/t_tide/t_tide_v1.4beta.zip
+    https://github.com/EarthAndSpaceResearch/TMD_Matlab_Toolbox_v2.5
 
 
 -------------------------- Initial TS file --------------------------------
