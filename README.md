@@ -38,12 +38,12 @@ Siqi Li, SMAST
     - Click the right directory. For example:
       - for Japan region of 2002
        --> GLBv0.08/expt_53.X with Sea Ice (Jan-01-1994 to Dec-30-2015)/
-           http://data.hycom.org/datasets/GLBv0.08/expt_53.X/data/2002/
+           http://data.hycom.org/datasets/GLBv0.08/expt_53.X/data/2002/   
            hycom_GLBv0.08_532_2002010112_t000.nc
            hycom_GLBv0.08_532_2002010112_t003.nc
       - for Japan region of 2020
        --> GLBy0.08/expt_93.0 (Dec-04-2018 to Present + FORECASTS + ice + sur)/
-           http://data.hycom.org/datasets/GLBy0.08/expt_93.0/data/hindcasts/2020/
+           http://data.hycom.org/datasets/GLBy0.08/expt_93.0/data/hindcasts/2020/   
            hycom_glby_930_2020010112_t000_ssh.nc
            hycom_glby_930_2020010112_t000_ts3z.nc
            hycom_glby_930_2020010112_t000_uv3z.nc
