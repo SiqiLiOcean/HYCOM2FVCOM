@@ -1,17 +1,13 @@
 # HYCOM2FVCOM
 
-===========================================================================
-|| HYCOM2FVCOM                                                           ||
-||                                                                       ||
-|| Siqi Li                                                               ||
-|| SMAST                                                                 ||
-|| 2022-12-06                                                            ||
-===========================================================================
-Use HYCOM dataset to run FVCOM case
+Siqi Li, SMAST
+2022-12-06
+
+### Use HYCOM dataset to run FVCOM case
     - Create initial TS file
     - Create nesting forcing file
 
-The package including:
+### The package including:
     - hycom2fvcom_download_hycom.sh
     - hycom2fvcom_iniTS_create.m
     - hycom2fvcom_nesting_select.m
@@ -19,7 +15,7 @@ The package including:
     - hycom2fvcom_nesting_create.m
 
 
-Required MATLAB toolbox
+### Required MATLAB toolbox
     - https://github.com/SiqiLiOcean/matFVCOM
     - https://github.com/SiqiLiOcean/matFigure
     - https://www.eoas.ubc.ca/~rich/t_tide/t_tide_v1.4beta.zip
