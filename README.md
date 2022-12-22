@@ -26,13 +26,13 @@ Siqi Li, SMAST
     https://github.com/EarthAndSpaceResearch/TMD_Matlab_Toolbox_v2.5
     
 ### Required data
-    Ocean tide model data is required to extract the tide constituents. 
-        Visit https://www.tpxo.net/global, and register there following 'HOW TO REGISTER'.
-        Write the 'load' file, containing three lines for the paths and names of the downloaded 'h_', 'u_', and 'grid_'. For example,
+Ocean tide model data is required to extract the tide constituents. 
++ Visit https://www.tpxo.net/global, and register there following 'HOW TO REGISTER'.
++ Write the 'load' file, containing three lines for the paths and names of the downloaded 'h_', 'u_', and 'grid_'. For example,
             ~/tools/TMD/DATA/h_tpxo9.v5a
             ~/tools/TMD/DATA/u_tpxo9.v5a
             ~/tools/TMD/DATA/grid_tpxo9.v5a
-        Set the 'load' file path and name to 'Model' in hycom2fvcom_nesting_extract_tide.m.
++ Set the 'load' file path and name to 'Model' in hycom2fvcom_nesting_extract_tide.m.
 
 
 -------------------------- Initial TS file --------------------------------
