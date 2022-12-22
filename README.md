@@ -16,9 +16,13 @@ Siqi Li, SMAST
 
 
 ### Required MATLAB toolbox
+    + matFVCOM
     https://github.com/SiqiLiOcean/matFVCOM
+    + matFigure
     https://github.com/SiqiLiOcean/matFigure
+    + t_tide
     https://www.eoas.ubc.ca/~rich/t_tide/t_tide_v1.4beta.zip
+    + TMD
     https://github.com/EarthAndSpaceResearch/TMD_Matlab_Toolbox_v2.5
 
 
