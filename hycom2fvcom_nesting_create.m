@@ -26,6 +26,7 @@
 %
 %==========================================================================
 addpath('~/tools/matFVCOM')
+addpath('~/tools/t_tide')
 
 clc
 clear
@@ -99,10 +100,10 @@ for it = 1 : length(t_hycom)
         wv_cell = interp_vertical_calc_weight(repmat(depth0(:)',fn.nele,1), fn.deplayc);
         % Initial variables
         zeta3 = nan(fn.node, nt_hycom);
-        t3 = nan(fn.node, nt_hycom);
-        s3 = nan(fn.node, nt_hycom);
-        u3 = nan(fn.nele, nt_hycom);
-        v3 = nan(fn.nele, nt_hycom);
+        t3 = nan(fn.node, nz, nt_hycom);
+        s3 = nan(fn.node, nz, nt_hycom);
+        u3 = nan(fn.nele, nz, nt_hycom);
+        v3 = nan(fn.nele, nz, nt_hycom);
     end
 
     % Read the data
