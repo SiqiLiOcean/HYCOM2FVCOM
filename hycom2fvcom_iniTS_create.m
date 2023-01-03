@@ -31,25 +31,39 @@ fout = './output/Japan_ini_ts.nc';
 
 % Read FVCOM grid and sigma
 f = f_load_grid(fgrid);
-
+% Convert longitude from 180 to 360 (the same as HYCOM).
+x360 = calc_lon_360(f.x);
 
 % Read HYCOM data
 lon0 = ncread(fhycom, 'lon');
+nx0 = length(lon0);
+lon0 = [lon0; lon0(1)+360];
 lat0 = ncread(fhycom, 'lat');
-ix = find(lon0>=min(f.x) & lon0<=max(f.x));
-iy = find(lat0>=min(f.y) & lat0<=max(f.y));
-x1 = ix(1);
-nx = length(ix);
-y1 = iy(1);
-ny = length(iy);
-lon0 = ncread(fhycom, 'lon', x1, nx);
-lat0 = ncread(fhycom, 'lat', y1, ny);
+ny0 = length(lat0);
 depth0 = ncread(fhycom, 'depth');
-s0 = ncread(fhycom, 'salinity', [x1 y1 1 1], [nx ny Inf 1]);
-t0 = ncread(fhycom, 'water_temp', [x1 y1 1 1], [nx ny Inf 1]);
+nz0 = length(depth0);
+t0 = ncread(fhycom, 'water_temp');
+t0(nx0+1,:,:,:) = t0(1,:,:,:); 
+s0 = ncread(fhycom, 'salinity');
+s0(nx0+1,:,:,:) = s0(1,:,:,:); 
+if strcmp(f.type, 'Regional')
+    ix = find(lon0>=min(x360) & lon0<=max(x360));
+    iy = find(lat0>=min(f.y) & lat0<=max(f.y));
+    x1 = ix(1);
+    nx = length(ix);
+    y1 = iy(1);
+    ny = length(iy);
+    lon0 = lon0(ix);
+    lat0 = lat0(iy);
+    t0 = t0(ix,:,:,:);
+    t0 = t0(:,iy,:,:);
+    s0 = s0(ix,:,:,:);
+    s0 = s0(:,iy,:,:);
+end
 [yy0, xx0] = meshgrid(lat0, lon0);
-nz = length(depth0);
+
 time0 = ncread(fhycom, 'time')/24 + datenum(2000,1,1);
+
 
 
 % Interpolation
@@ -60,13 +74,12 @@ for iz = 1 : nz
     % t
     kt = ~isnan(t0(:,:,iz));
     Ft = scatteredInterpolant(xx0(kt), yy0(kt), t0(kt), 'linear', 'nearest');
-    t(:,iz) = Ft(f.x, f.y);
+    t(:,iz) = Ft(x360, f.y);
     % s
     ks = ~isnan(s0(:,:,iz));
     Fs = scatteredInterpolant(xx0(kt), yy0(kt), s0(kt), 'linear', 'nearest');
-    s(:,iz) = Fs(f.x, f.y);
+    s(:,iz) = Fs(x360, f.y);
 end
 
 % Write initial TS output
 write_initial_ts(fout, -depth0, t, s, time0);
-
