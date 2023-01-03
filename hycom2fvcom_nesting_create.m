@@ -23,7 +23,7 @@
 % 2022-11-30
 %
 % Updates:
-%
+% 2023-01-03  Siqi Li  Convert the fvcom longitude into [0 360]
 %==========================================================================
 addpath('~/tools/matFVCOM')
 addpath('~/tools/t_tide')
@@ -58,6 +58,9 @@ nt_out = length(t_out);
 
 % Read the fvcom nesting grid
 load(fnesting);
+x360 = calc_lon_360(fn.x);
+xc360 = calc_lon_360(fn.xc);
+
 
 % Load tide data
 load(ftide);
@@ -82,7 +85,7 @@ for it = 1 : length(t_hycom)
         % Read HYCOM grid
         lon0 = ncread(fzeta, 'lon');
         lat0 = ncread(fzeta, 'lat');
-        ix = find(lon0>=min(fn.x) & lon0<=max(fn.x));
+        ix = find(lon0>=min(x360) & lon0<=max(x360));
         iy = find(lat0>=min(fn.y) & lat0<=max(fn.y));
         x1 = ix(1);
         nx = length(ix);
@@ -94,8 +97,8 @@ for it = 1 : length(t_hycom)
         depth0 = ncread(fzeta, 'depth');
         nz = length(depth0);
         % Calculate interpolation weights
-        wh_node = interp_2d_calc_weight('BI', xx0, yy0, fn.x, fn.y, 'Exterp');
-        wh_cell = interp_2d_calc_weight('BI', xx0, yy0, fn.xc, fn.yc, 'Exterp');
+        wh_node = interp_2d_calc_weight('BI', xx0, yy0, x360, fn.y, 'Exterp');
+        wh_cell = interp_2d_calc_weight('BI', xx0, yy0, xc360, fn.yc, 'Exterp');
         wv_node = interp_vertical_calc_weight(repmat(depth0(:)',fn.node,1), fn.deplay);
         wv_cell = interp_vertical_calc_weight(repmat(depth0(:)',fn.nele,1), fn.deplayc);
         % Initial variables
