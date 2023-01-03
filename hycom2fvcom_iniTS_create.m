@@ -61,25 +61,46 @@ if strcmp(f.type, 'Regional')
     s0 = s0(:,iy,:,:);
 end
 [yy0, xx0] = meshgrid(lat0, lon0);
-
 time0 = ncread(fhycom, 'time')/24 + datenum(2000,1,1);
-
-
 
 % Interpolation
 t = nan(f.node, nz0);
 s = nan(f.node, nz0);
+wh = interp_2d_calc_weight('BI', xx0, yy0, x360, f.y);
 for iz = 1 : nz0
     disp(['Interpolating the ' num2str(iz) 'th layer of ' num2str(nz0) ' layers.'])
-    % t
-    kt = ~isnan(t0(:,:,iz));
-    Ft = scatteredInterpolant(xx0(kt), yy0(kt), t0(kt), 'linear', 'nearest');
-    t(:,iz) = Ft(x360, f.y);
-    % s
-    ks = ~isnan(s0(:,:,iz));
-    Fs = scatteredInterpolant(xx0(kt), yy0(kt), s0(kt), 'linear', 'nearest');
-    s(:,iz) = Fs(x360, f.y);
+    % Horizontal interpolation
+    t_layer = interp_2d_via_weight(t0(:,:,iz), wh);
+    s_layer = interp_2d_via_weight(s0(:,:,iz), wh);
+    % Fill the points that are recognize as land in HYCOM
+    i_land = find(isnan(t_layer));
+    i_ocean = find(~isnan(t_layer));
+    k_land = knnsearch([f.x(i_ocean) f.y(i_ocean)], [f.x(i_land) f.y(i_land)], 'K', 2);
+    k_land = i_ocean(k_land(:,2));
+    t_layer(i_land) = t_layer(k_land);
+    s_layer(i_land) = s_layer(k_land);
+    % Set the layer below the depth as nan
+    k_bot = f.h <= depth0(iz);
+    t_layer(k_bot) = nan;
+    s_layer(k_bot) = nan;
+    % Store the data
+    t(:,iz) = t_layer;
+    s(:,iz) = s_layer;
+%     % t
+%     t_layer = t0(:,:,iz);
+%     kt = ~isnan(t_layer);
+%     Ft = scatteredInterpolant(xx0(kt), yy0(kt), t_layer(kt), 'linear', 'nearest');
+%     t(:,iz) = Ft(x360, f.y);
+%     % s
+%     s_layer = s0(:,:,iz);
+%     ks = ~isnan(s_layer);
+%     Fs = scatteredInterpolant(xx0(kt), yy0(kt), s_layer(kt), 'linear', 'nearest');
+%     s(:,iz) = Fs(x360, f.y);
 end
+
+% Fill the points under the bathemetry
+t = fillmissing(t, 'nearest', 2);
+s = fillmissing(s, 'nearest', 2);
 
 % Write initial TS output
 write_initial_ts(fout, -depth0, t, s, time0);
