@@ -70,7 +70,7 @@ time0 = ncread(fhycom, 'time')/24 + datenum(2000,1,1);
 t = nan(f.node, nz0);
 s = nan(f.node, nz0);
 for iz = 1 : nz0
-    disp(['Interpolating the ' num2str(iz) 'th layer of ' num2str(nz) ' layers.'])
+    disp(['Interpolating the ' num2str(iz) 'th layer of ' num2str(nz0) ' layers.'])
     % t
     kt = ~isnan(t0(:,:,iz));
     Ft = scatteredInterpolant(xx0(kt), yy0(kt), t0(kt), 'linear', 'nearest');
