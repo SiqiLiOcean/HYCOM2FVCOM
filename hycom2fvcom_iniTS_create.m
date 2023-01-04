@@ -17,7 +17,9 @@
 % 2023-01-03  Siqi Li  Convert the fvcom longitude into [0 360]
 % 2023-01-04  Siqi Li  Used new interpolating method
 %==========================================================================
-addpath('~/tools/matFVCOM')
+% addpath('~/tools/matFVCOM')
+% addpath('~/tools/matFigure')
+
 
 clc
 clear
