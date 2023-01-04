@@ -15,6 +15,7 @@
 %
 % Updates:
 % 2023-01-03  Siqi Li  Convert the fvcom longitude into [0 360]
+% 2023-01-04  Siqi Li  Used new interpolating method
 %==========================================================================
 addpath('~/tools/matFVCOM')
 
@@ -31,54 +32,31 @@ fout = './output/Japan_ini_ts.nc';
 
 % Read FVCOM grid and sigma
 f = f_load_grid(fgrid);
-% Convert longitude from 180 to 360 (the same as HYCOM).
-x360 = calc_lon_360(f.x);
 
 % Read HYCOM data
 lon0 = ncread(fhycom, 'lon');
-nx0 = length(lon0);
-lon0 = [lon0; lon0(1)+360];
 lat0 = ncread(fhycom, 'lat');
-ny0 = length(lat0);
 depth0 = ncread(fhycom, 'depth');
-nz0 = length(depth0);
 t0 = ncread(fhycom, 'water_temp');
-t0(nx0+1,:,:,:) = t0(1,:,:,:); 
 s0 = ncread(fhycom, 'salinity');
-s0(nx0+1,:,:,:) = s0(1,:,:,:); 
-if strcmp(f.type, 'Regional')
-    ix = find(lon0>=min(x360) & lon0<=max(x360));
-    iy = find(lat0>=min(f.y) & lat0<=max(f.y));
-    x1 = ix(1);
-    nx = length(ix);
-    y1 = iy(1);
-    ny = length(iy);
-    lon0 = lon0(ix);
-    lat0 = lat0(iy);
-    t0 = t0(ix,:,:,:);
-    t0 = t0(:,iy,:,:);
-    s0 = s0(ix,:,:,:);
-    s0 = s0(:,iy,:,:);
-end
-[yy0, xx0] = meshgrid(lat0, lon0);
 time0 = ncread(fhycom, 'time')/24 + datenum(2000,1,1);
+
+% Dimensions
+nz0 = length(depth0);
 
 % Interpolation
 t = nan(f.node, nz0);
 s = nan(f.node, nz0);
-wh = interp_2d_calc_weight('BI', xx0, yy0, x360, f.y);
+disp('Calculating interpolating weight.')
+wh = interp_2d_calc_weight('GLOBAL_BI', lon0, lat0, f.x, f.y);
 for iz = 1 : nz0
     disp(['Interpolating the ' num2str(iz) 'th layer of ' num2str(nz0) ' layers.'])
     % Horizontal interpolation
     t_layer = interp_2d_via_weight(t0(:,:,iz), wh);
     s_layer = interp_2d_via_weight(s0(:,:,iz), wh);
     % Fill the points that are recognize as land in HYCOM
-    i_land = find(isnan(t_layer));
-    i_ocean = find(~isnan(t_layer));
-    k_land = knnsearch([f.x(i_ocean) f.y(i_ocean)], [f.x(i_land) f.y(i_land)], 'K', 2);
-    k_land = i_ocean(k_land(:,2));
-    t_layer(i_land) = t_layer(k_land);
-    s_layer(i_land) = s_layer(k_land);
+    t_layer = f_fill_missing(f, t_layer);
+    s_layer = f_fill_missing(f, s_layer);
     % Set the layer below the depth as nan
     k_bot = f.h <= depth0(iz);
     t_layer(k_bot) = nan;
@@ -101,6 +79,30 @@ end
 % Fill the points under the bathemetry
 t = fillmissing(t, 'nearest', 2);
 s = fillmissing(s, 'nearest', 2);
+
+% % % % Plot (Uncomment this part for figures)
+% % % figdir = '../output/';
+% % % close all
+% % % for iz = 1 : nz0
+% % %     disp(['----' num2str(iz, '%2.2d')])
+% % %     figure('Visible', 'off')
+% % %     hold on
+% % %     subplot(2,1,1)
+% % %     f_2d_image(f, t(:,iz));
+% % %     colorbar
+% % %     caxis([0 35])
+% % %    title([num2str(depth0(iz)) ' m (' num2str(iz, '%2.2d') '): Temperature'])
+% % %     subplot(2,1,2)
+% % %     f_2d_image(f, s(:,iz));
+% % %     colorbar
+% % %     caxis([25 40])
+% % %     title([num2str(depth0(iz)) ' m (' num2str(iz, '%2.2d') '): Salinity'])
+% % % 
+% % %     ffig = [figdir '/init_ts_' datestr(time0, 'yyyymmddHH') '_layer_' num2str(iz,'%2.2d') '.png'];
+% % %     mf_save(ffig);
+% % %     close
+% % % end
+
 
 % Write initial TS output
 write_initial_ts(fout, -depth0, t, s, time0);
