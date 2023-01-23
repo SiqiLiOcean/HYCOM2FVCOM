@@ -42,7 +42,7 @@ Ocean tide model data is required to extract the tide constituents.
 
 -------------------------- Nesting forcing --------------------------------
 1. Download HYCOM data (hycom2fvcom_download_hycom.sh)
-   bash hycom2fvcom_download_hycom.sh
+    bash hycom2fvcom_download_hycom.sh
       OR
    download data manually:
     + Select the proper HYCOM dataset from https://www.hycom.org/dataserver,
