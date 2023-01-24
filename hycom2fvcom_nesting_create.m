@@ -3,17 +3,14 @@
 %   Create FVCOM nesting forcing from HYCOM dataset 
 %
 % input  :
-%   fnesting  --- nesting grid file (mat)
+%   fnesting  --- nesting grid file (mat, from hycom2fvcom_nesting_select.m)
 %   ftide     --- tide constituent file (mat)
-%   dir_hycom --- directory of downloaded hycomdata 
+%   dir_hycom --- directory of downloaded hycom data 
 %   fout      --- output nesting forcing (NetCDF)
-%   type      --- hycom data type
-%                   1 (all variables written in one file) 
-%                   2 (zeta, uv, and ts are written in three files)
 %   time1     --- starting date and time (datenum)
 %   time2     --- ending date and time (datenum)
-%   dt_hycom  --- hycom file time interval (in hour)
-%   dt_out    --- output time interval (in second)
+%   dt_hycom  --- hycom file time interval (hour)
+%   dt_out    --- output time interval (second)
 %
 % 
 % output :
@@ -33,13 +30,12 @@ clear
 
 %--------------------------------------------------------------------------
 % Input
-fnesting = './output/Japan_nesting_grid.mat';
-ftide = './output/Japan_nesting_tide.mat';
-dir_hycom = './data/hycom';
-fout = './output/Japan_nesting_forcing.nc';
-type = 1;
-time1 = datenum(2002, 1, 1, 0, 0, 0);
-time2 = datenum(2002, 1, 1, 3, 0, 0);
+fnesting = '../output/gom7_nesting_grid.mat';
+ftide = '../output/gom7_nesting_tide.mat';
+dir_hycom = '../hycom';
+fout = '../output/gom7_nesting_20161221_20170201.nc';
+time1 = datenum(2016, 12, 21, 0, 0, 0);
+time2 = datenum(2017,  2,  1, 0, 0, 0);
 dt_hycom = 3;
 dt_out = 180;
 %--------------------------------------------------------------------------
@@ -58,15 +54,44 @@ nt_out = length(t_out);
 
 % Read the fvcom nesting grid
 load(fnesting);
-x360 = calc_lon_360(fn.x);
-xc360 = calc_lon_360(fn.xc);
+% nesting_lon = fn.x;
+% nesting_lat = fn.y;
+% nesting_lonc = fn.xc;
+% nesting_latc = fn.yc;
+[nesting_lon, nesting_lat] = sp_proj('1802', 'inverse', fn.x, fn.y, 'm');
+[nesting_lonc, nesting_latc] = sp_proj('1802', 'inverse', fn.xc, fn.yc, 'm');
+nesting_lon = calc_lon_180(nesting_lon);
+nesting_lonc = calc_lon_180(nesting_lonc);
+
 
 
 % Load tide data
 load(ftide);
 
+% Initial variables
+zeta3 = nan(fn.node, nt_hycom);
+t3 = nan(fn.node, fn.kbm1, nt_hycom);
+s3 = nan(fn.node, fn.kbm1, nt_hycom);
+u3 = nan(fn.nele, fn.kbm1, nt_hycom);
+v3 = nan(fn.nele, fn.kbm1, nt_hycom);
+
 % Read the hycom data
-for it = 1 : length(t_hycom)
+for it = 1 : nt_hycom
+
+    disp(['--- Interpolate HYCOM->FVCOM: ' num2str(it,'%4.4d') ' of ' num2str(nt_hycom,'%4.4d')])
+    % Check the data type
+    test1 = dir([dir_hycom '/hycom_' datestr(t_hycom(it), 'yyyymmdd_HHMM') '.nc']);
+    test2 = dir([dir_hycom '/hycom_' datestr(t_hycom(it), 'yyyymmdd_HHMM') '_ssh.nc']);
+    if ~isempty(test1)
+        type = 1;
+    else
+        if ~isempty(test2)
+            type = 2;
+        else
+            error('No data found.')
+        end
+    end
+
     % File names
     switch type
         case 1
@@ -82,39 +107,27 @@ for it = 1 : length(t_hycom)
     end
     
     if it == 1
-        % Read HYCOM grid
-        lon0 = ncread(fzeta, 'lon');
-        lat0 = ncread(fzeta, 'lat');
-        ix = find(lon0>=min(x360) & lon0<=max(x360));
-        iy = find(lat0>=min(fn.y) & lat0<=max(fn.y));
-        x1 = ix(1);
-        nx = length(ix);
-        y1 = iy(1);
-        ny = length(iy);
-        lon0 = ncread(fzeta, 'lon', x1, nx);
-        lat0 = ncread(fzeta, 'lat', y1, ny);
-        [yy0, xx0] = meshgrid(lat0, lon0);
+        % Read depth
         depth0 = ncread(fzeta, 'depth');
         nz = length(depth0);
-        % Calculate interpolation weights
-        wh_node = interp_2d_calc_weight('BI', xx0, yy0, x360, fn.y, 'Exterp');
-        wh_cell = interp_2d_calc_weight('BI', xx0, yy0, xc360, fn.yc, 'Exterp');
-        wv_node = interp_vertical_calc_weight(repmat(depth0(:)',fn.node,1), fn.deplay);
-        wv_cell = interp_vertical_calc_weight(repmat(depth0(:)',fn.nele,1), fn.deplayc);
-        % Initial variables
-        zeta3 = nan(fn.node, nt_hycom);
-        t3 = nan(fn.node, nz, nt_hycom);
-        s3 = nan(fn.node, nz, nt_hycom);
-        u3 = nan(fn.nele, nz, nt_hycom);
-        v3 = nan(fn.nele, nz, nt_hycom);
     end
 
+    % Read HYCOM grid
+    lon0 = ncread(fzeta, 'lon');
+    lon0 = calc_lon_180(lon0);
+    lat0 = ncread(fzeta, 'lat');
+    % Calculate interpolation weights
+    wh_node = interp_2d_calc_weight('BI', lon0, lat0, nesting_lon, nesting_lat);
+    wh_cell = interp_2d_calc_weight('BI', lon0, lat0, nesting_lonc, nesting_latc);
+    wv_node = interp_vertical_calc_weight(repmat(depth0(:)',fn.node,1), fn.deplay);
+    wv_cell = interp_vertical_calc_weight(repmat(depth0(:)',fn.nele,1), fn.deplayc);
+
     % Read the data
-    zeta0 = ncread(fzeta, 'surf_el', [x1 y1 1], [nx ny 1]);
-    t0 = ncread(fzeta, 'water_temp', [x1 y1 1 1], [nx ny Inf 1]);
-    s0 = ncread(fzeta, 'salinity', [x1 y1 1 1], [nx ny Inf 1]);
-    u0 = ncread(fzeta, 'water_u', [x1 y1 1 1], [nx ny Inf 1]);
-    v0 = ncread(fzeta, 'water_v', [x1 y1 1 1], [nx ny Inf 1]);
+    zeta0 = ncread(fzeta, 'surf_el');
+    t0 = ncread(fzeta, 'water_temp');
+    s0 = ncread(fzeta, 'salinity');
+    u0 = ncread(fzeta, 'water_u');
+    v0 = ncread(fzeta, 'water_v');
 
     % Horizontal interpolation
     zeta1 = interp_2d_via_weight(zeta0, wh_node);
@@ -174,7 +187,7 @@ for i = 1 : fn.node
         disp(['--- Predicting tide elevation: ' num2str(i, '%4.4d') ' / ' num2str(fn.node, '%4.4d')])
     end
     tide_zeta(i,:) = t_predic(t_out, tide_zeta_struct(i), ...
-                              'latitude', fn.y(i), ...
+                              'latitude', nesting_lat(i), ...
                               'synthesis', 0);
 end
 tide_uv = nan(fn.nele, fn.kbm1, nt_out);
@@ -184,7 +197,7 @@ for j = 1 : fn.nele
     end
     for iz = 1 : fn.kbm1
         tide_uv(j, iz, :) = t_predic(t_out, tide_uv_struct(j,iz), ...
-                                   'latitude', fn.yc(j), ...
+                                   'latitude', nesting_latc(j), ...
                                    'synthesis', 0);
     end
 end

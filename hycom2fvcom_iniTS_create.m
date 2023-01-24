@@ -26,14 +26,15 @@ clear
 
 %--------------------------------------------------------------------------
 % Input
-fgrid = './data/fvcom/Tokyo_bay_large_grd.dat';
-fhycom = './data/hycom/hycom_20020101_0000.nc';
-fout = './output/Japan_ini_ts.nc';
+fgrid = '../data/Gom7_v5_nest_CascoBay5.1.2dm';
+fhycom = '../hycom/hycom_20161221_0000.nc';
+fout = '../output/gom7_ini_ts_20161221.nc';
 %--------------------------------------------------------------------------
 
 
 % Read FVCOM grid and sigma
 f = f_load_grid(fgrid);
+[lon_fvcom, lat_fvcom] = sp_proj('1802', 'inverse', f.x, f.y, 'm');
 
 % Read HYCOM data
 lon0 = ncread(fhycom, 'lon');
@@ -50,7 +51,7 @@ nz0 = length(depth0);
 t = nan(f.node, nz0);
 s = nan(f.node, nz0);
 disp('Calculating interpolating weight.')
-wh = interp_2d_calc_weight('GLOBAL_BI', lon0, lat0, f.x, f.y);
+wh = interp_2d_calc_weight('GLOBAL_BI', lon0, lat0, lon_fvcom, lat_fvcom);
 for iz = 1 : nz0
     disp(['Interpolating the ' num2str(iz) 'th layer of ' num2str(nz0) ' layers.'])
     % Horizontal interpolation
@@ -60,9 +61,11 @@ for iz = 1 : nz0
     t_layer = f_fill_missing(f, t_layer);
     s_layer = f_fill_missing(f, s_layer);
     % Set the layer below the depth as nan
-    k_bot = f.h <= depth0(iz);
-    t_layer(k_bot) = nan;
-    s_layer(k_bot) = nan;
+    if iz> 2
+        k_bot = f.h <= depth0(iz);
+        t_layer(k_bot) = nan;
+        s_layer(k_bot) = nan;
+    end
     % Store the data
     t(:,iz) = t_layer;
     s(:,iz) = s_layer;
@@ -82,28 +85,28 @@ end
 t = fillmissing(t, 'nearest', 2);
 s = fillmissing(s, 'nearest', 2);
 
-% % % % Plot (Uncomment this part for figures)
-% % % figdir = '../output/';
-% % % close all
-% % % for iz = 1 : nz0
-% % %     disp(['----' num2str(iz, '%2.2d')])
-% % %     figure('Visible', 'off')
-% % %     hold on
-% % %     subplot(2,1,1)
-% % %     f_2d_image(f, t(:,iz));
-% % %     colorbar
-% % %     caxis([0 35])
-% % %    title([num2str(depth0(iz)) ' m (' num2str(iz, '%2.2d') '): Temperature'])
-% % %     subplot(2,1,2)
-% % %     f_2d_image(f, s(:,iz));
-% % %     colorbar
-% % %     caxis([25 40])
-% % %     title([num2str(depth0(iz)) ' m (' num2str(iz, '%2.2d') '): Salinity'])
-% % % 
-% % %     ffig = [figdir '/init_ts_' datestr(time0, 'yyyymmddHH') '_layer_' num2str(iz,'%2.2d') '.png'];
-% % %     mf_save(ffig);
-% % %     close
-% % % end
+% Plot (Uncomment this part for figures)
+figdir = '../output/';
+close all
+for iz = 1 : nz0
+    disp(['----' num2str(iz, '%2.2d')])
+    figure('Visible', 'off')
+    hold on
+    subplot(2,1,1)
+    f_2d_image(f, t(:,iz));
+    colorbar
+    caxis([0 35])
+   title([num2str(depth0(iz)) ' m (' num2str(iz, '%2.2d') '): Temperature'])
+    subplot(2,1,2)
+    f_2d_image(f, s(:,iz));
+    colorbar
+    caxis([25 40])
+    title([num2str(depth0(iz)) ' m (' num2str(iz, '%2.2d') '): Salinity'])
+
+    ffig = [figdir '/init_ts_' datestr(time0, 'yyyymmddHH') '_layer_' num2str(iz,'%2.2d') '.png'];
+    mf_save(ffig);
+    close
+end
 
 
 % Write initial TS output
