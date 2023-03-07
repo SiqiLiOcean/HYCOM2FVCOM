@@ -11,7 +11,8 @@ Siqi Li, SMAST
     hycom2fvcom_download_hycom.sh
     hycom2fvcom_iniTS_create.m
     hycom2fvcom_nesting_select.m
-    hycom2fvcom_nesting_extract_tide.m
+    hycom2fvcom_nesting_tide_TMD.m
+    hycom2fvcom_nesting_tide_user.m
     hycom2fvcom_nesting_create.m
 
 
@@ -70,10 +71,13 @@ Ocean tide model data is required to extract the tide constituents.
 2. Set the nesting layers (hycom2fvcom_nesting_select.m)
     Select nesting nodes and cells based on the grid, obc, and the nesting layers
 
-3. Extract the tide harmonic coefficients (hycom2fvcom_nesting_extract_tide.m).
-    + download the tide model from
-      https://www.esr.org/research/polar-tide-models/list-of-polar-tide-models/
-    + extract the tide harmonic coefficients on the nesting nodes and cells
-
+3. Extract the tide harmonic components.
+   There are two ways to create the tide components for the FVCOM nesting. One is to use TPXO dataset via TMD toolbox. The other is to use user-defined tide components.
+   + a) Use TPXO dataset via TMD toolbox (hycom2fvcom_nesting_tide_TMD.m).
+     + download the tide model from
+       https://www.esr.org/research/polar-tide-models/list-of-polar-tide-models/
+     + extract the tide harmonic coefficients on the nesting nodes and cells
+   + b) User defined (hycom2fvcom_nesting_tide_user.m)
+   
 4. Write out the nesting forcing file (hycom2fvcom_nesting_create.m)
 
