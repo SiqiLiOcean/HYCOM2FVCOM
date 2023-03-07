@@ -17,7 +17,8 @@
 %                 (hour), set nan if disabled
 %   lpf_T_uv  --- low-pass filter half amplitude period for current
 %                  (hour), set nan if disabled
-% 
+%   zeta_adj  --- HYCOM elevation adjusted height (m)
+%
 % output :
 %   nesting forcing file
 %
@@ -26,7 +27,10 @@
 %
 % Updates:
 % 2023-02-02  Siqi Li  Added two outputs for tide and hycom seperately
+% 2023-02-03  Siqi Li  Removed the wrong data in HYCOM
 % 2023-03-02  Siqi Li  Added low-pass filter for elevation and currents
+% 2023-03-04  Siqi Li  Added an option to adjust HYCOM elevation reference
+%                      level
 %==========================================================================
 addpath('~/tools/matFVCOM')
 addpath('~/tools/t_tide')
@@ -52,6 +56,7 @@ dt_hycom = 3;
 dt_out = 240; 
 lpf_T_zeta = 33;
 lpf_T_uv = 33;
+zeta_adj = 0;
 %--------------------------------------------------------------------------
 
 
@@ -234,6 +239,9 @@ else
     hycom_v_lpf(:,iz,:) = tmp_v';
   end
 end
+
+% Adjusted HYCOM elevation
+hycom_zeta_lpf = hycom_zeta_lpf + zeta_adj;
 
 % Predict tide
 % Zeta
