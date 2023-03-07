@@ -17,7 +17,7 @@
 % 2022-11-30
 %
 % Updates:
-%
+% 2023-02-28  Siqi Li  Fixed the unit mismatch between TMD and HYCOM
 %==========================================================================
 addpath('~/tools/matFVCOM')
 addpath('~/tools/TMD')
@@ -66,6 +66,9 @@ clear amp pha
 for j = 1 : length(tide_name)
     [fmaj(:,j), fmin(:,j), pha(:,j), finc(:,j)] = tmd_ellipse(Model, fn.yc, fn.xc, tide_name{j});
 end
+% Convert unit from cm/s to m/s
+fmaj = fmaj / 100;
+fmin = fmin / 100;
 % Create the tidestruc for t_tide
 for i = 1 : fn.nele
     tide_uv_struct(i,1) = create_tidestruc(tide_name, fmaj(i,:), fmin(i,:), finc(i,:), pha(i,:));
