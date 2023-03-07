@@ -3,15 +3,20 @@
 %   Create FVCOM nesting forcing from HYCOM dataset 
 %
 % input  :
-%   fnesting  --- nesting grid file (mat, from hycom2fvcom_nesting_select.m)
+%   fnesting  --- nesting grid file (mat)
 %   ftide     --- tide constituent file (mat)
 %   dir_hycom --- directory of downloaded hycom data 
 %   fout      --- output nesting forcing (NetCDF)
+%   fout_tide --- output nesting tide forcing (NetCDF, set '' if no need)
+%   fout_hycom--- output nesting hycom forcing (NetCDF, set '' if no need)
 %   time1     --- starting date and time (datenum)
 %   time2     --- ending date and time (datenum)
 %   dt_hycom  --- hycom file time interval (hour)
 %   dt_out    --- output time interval (second)
-%
+%   lpf_T_zeta--- low-pass filter half amplitude period for elevation
+%                 (hour), set nan if disabled
+%   lpf_T_uv  --- low-pass filter half amplitude period for current
+%                  (hour), set nan if disabled
 % 
 % output :
 %   nesting forcing file
@@ -20,7 +25,8 @@
 % 2022-11-30
 %
 % Updates:
-% 2023-01-03  Siqi Li  Convert the fvcom longitude into [0 360]
+% 2023-02-02  Siqi Li  Added two outputs for tide and hycom seperately
+% 2023-03-02  Siqi Li  Added low-pass filter for elevation and currents
 %==========================================================================
 addpath('~/tools/matFVCOM')
 addpath('~/tools/t_tide')
@@ -30,14 +36,22 @@ clear
 
 %--------------------------------------------------------------------------
 % Input
-fnesting = '../output/gom7_nesting_grid.mat';
+fnesting = '../output/gom7_nesting_grid_e.mat';
 ftide = '../output/gom7_nesting_tide.mat';
-dir_hycom = '../hycom';
-fout = '../output/gom7_nesting_20161221_20170201.nc';
+dir_hycom = '../hycom1';
+fout = '../output/gom7_nesting_f.nc';
+fout_tide = '../output/gom7_nesting_tide_f.nc';
+fout_hycom = '../output/gom7_nesting_hycom_f.nc';
+fout_lpf = '../output/gom7_nesting_lpf_f.nc';
+% fout = '../output/gom7_nesting_20161221_20170201.nc';
+% fout_tide = '../output/gom7_nesting_tide_20161221_20170201.nc';
+% fout_hycom = '../output/gom7_nesting_hycom_20161221_20170201.nc';
 time1 = datenum(2016, 12, 21, 0, 0, 0);
-time2 = datenum(2017,  2,  1, 0, 0, 0);
+time2 = datenum(2017, 02, 01, 0, 0, 0);
 dt_hycom = 3;
-dt_out = 180;
+dt_out = 240; 
+lpf_T_zeta = 33;
+lpf_T_uv = 33;
 %--------------------------------------------------------------------------
 
 
@@ -54,15 +68,16 @@ nt_out = length(t_out);
 
 % Read the fvcom nesting grid
 load(fnesting);
+% Get the longitudes and latitudes of nesting nodes and cells
+% --- For Spherical Coordinate
 % nesting_lon = fn.x;
 % nesting_lat = fn.y;
 % nesting_lonc = fn.xc;
 % nesting_latc = fn.yc;
+% --- For Cartisian Coordinate 
+% (required to modified the following based on your own domain)
 [nesting_lon, nesting_lat] = sp_proj('1802', 'inverse', fn.x, fn.y, 'm');
 [nesting_lonc, nesting_latc] = sp_proj('1802', 'inverse', fn.xc, fn.yc, 'm');
-nesting_lon = calc_lon_180(nesting_lon);
-nesting_lonc = calc_lon_180(nesting_lonc);
-
 
 
 % Load tide data
@@ -117,8 +132,8 @@ for it = 1 : nt_hycom
     lon0 = calc_lon_180(lon0);
     lat0 = ncread(fzeta, 'lat');
     % Calculate interpolation weights
-    wh_node = interp_2d_calc_weight('BI', lon0, lat0, nesting_lon, nesting_lat);
-    wh_cell = interp_2d_calc_weight('BI', lon0, lat0, nesting_lonc, nesting_latc);
+    wh_node = interp_2d_calc_weight('Global_BI', lon0, lat0, nesting_lon, nesting_lat);
+    wh_cell = interp_2d_calc_weight('Global_BI', lon0, lat0, nesting_lonc, nesting_latc);
     wv_node = interp_vertical_calc_weight(repmat(depth0(:)',fn.node,1), fn.deplay);
     wv_cell = interp_vertical_calc_weight(repmat(depth0(:)',fn.nele,1), fn.deplayc);
 
@@ -173,14 +188,55 @@ end
 
 
 % Time interpolation 
-wt = interp_time_calc_weight(t_hycom, t_out);
-hycom_zeta = interp_time_via_weight(zeta3, wt);
-hycom_t = interp_time_via_weight(t3, wt);
-hycom_s = interp_time_via_weight(s3, wt);
-hycom_u = interp_time_via_weight(u3, wt);
-hycom_v = interp_time_via_weight(v3, wt);
+% Sometimes the data could be all zeros. Such as 2017-01-03 03:00
+eps = 1e-5;
+t_good = squeeze(max(abs(zeta3), [], 1))>eps;
+hycom_zeta = interp_time(zeta3(:,t_good), t_hycom(t_good), t_out);
+t_good = squeeze(max(abs(t3-20.), [], [1 2]))>eps;
+hycom_t = interp_time(t3(:,:,t_good), t_hycom(t_good), t_out);
+t_good = squeeze(max(abs(s3-20.), [], [1 2]))>eps;
+hycom_s = interp_time(s3(:,:,t_good), t_hycom(t_good), t_out);
+t_good = squeeze(max(abs(u3), [], [1 2]))>eps;
+hycom_u = interp_time(u3(:,:,t_good), t_hycom(t_good), t_out);
+t_good = squeeze(max(abs(v3), [], [1 2]))>eps;
+hycom_v = interp_time(v3(:,:,t_good), t_hycom(t_good), t_out);
+% wt = interp_time_calc_weight(t_hycom, t_out);
+% hycom_zeta = interp_time_via_weight(zeta3, wt);
+% hycom_t = interp_time_via_weight(t3, wt);
+% hycom_s = interp_time_via_weight(s3, wt);
+% hycom_u = interp_time_via_weight(u3, wt);
+% hycom_v = interp_time_via_weight(v3, wt);
+
+% Low-pass filter
+% For zeta
+if isnan(lpf_T_zeta)
+  hycom_zeta_lpf = hycom_zeta;
+else
+  disp('----Low-pass filter for elevation:')
+  tmp_zeta = pl66tn(hycom_zeta, dt_out*24, lpf_T_zeta);
+  hycom_zeta_lpf = tmp_zeta';
+end
+% For uv
+if isnan(lpf_T_uv)
+  hycom_u_lpf = hycom_u;
+  hycom_v_lpf = hycom_v;
+else
+  disp('----Low-pass filter for currents:')
+  hycom_u_lpf = nan(size(hycom_u));
+  hycom_v_lpf = nan(size(hycom_v));
+  for iz = 1 : fn.kbm1
+    disp(['    Layer ' num2str(iz, '%2.2d')])
+    tmp_u = squeeze(hycom_u(:,iz,:));
+    tmp_v = squeeze(hycom_v(:,iz,:));
+    tmp_u = pl66tn(tmp_u, dt_out*24, lpf_T_uv);
+    tmp_v = pl66tn(tmp_v, dt_out*24, lpf_T_uv);
+    hycom_u_lpf(:,iz,:) = tmp_u';
+    hycom_v_lpf(:,iz,:) = tmp_v';
+  end
+end
 
 % Predict tide
+% Zeta
 tide_zeta = nan(fn.node, nt_out);
 for i = 1 : fn.node
     if mod(i,100) == 0
@@ -190,6 +246,7 @@ for i = 1 : fn.node
                               'latitude', nesting_lat(i), ...
                               'synthesis', 0);
 end
+% UV
 tide_uv = nan(fn.nele, fn.kbm1, nt_out);
 for j = 1 : fn.nele
     if mod(j,10) == 0
@@ -205,9 +262,9 @@ tide_u = real(tide_uv);
 tide_v = imag(tide_uv);
 
 % Combine the tide and hycom data
-out_zeta = hycom_zeta + tide_zeta;
-out_u = hycom_u + tide_u;
-out_v = hycom_v + tide_v;
+out_zeta = hycom_zeta_lpf + tide_zeta;
+out_u = hycom_u_lpf + tide_u;
+out_v = hycom_v_lpf + tide_v;
 out_t = hycom_t;
 out_s = hycom_s;
 
@@ -220,8 +277,25 @@ write_nesting(fout, fn, 'Time', t_out, 'Zeta', out_zeta, ...
                                        'V', out_v, ...
                                        'Weight_node', fn.node_weight, ...
                                        'Weight_cell', fn.cell_weight);
-
-
-
+% Write out the nesting_tide file
+if ~isempty(fout_tide)
+  write_nesting(fout_tide, fn, 'Time', t_out, 'Zeta', tide_zeta, ...
+                                       'U', tide_u, ...
+                                       'V', tide_v);
+end
+% Write out the nesting_hycom file
+if ~isempty(fout_hycom)
+  write_nesting(fout_hycom, fn, 'Time', t_out, 'Zeta', hycom_zeta, ...
+                                       'Temperature', hycom_t, ...
+                                       'Salinity', hycom_s, ...
+                                       'U', hycom_u, ...
+                                       'V', hycom_v);
+end
+% Write out the low-pass filed results
+if ~isempty(fout_lpf)
+  write_nesting(fout_lpf, fn, 'Time', t_out, 'Zeta', hycom_zeta_lpf, ...
+                                       'U', hycom_u_lpf, ...
+                                       'V', hycom_v_lpf);
+end
 
 

@@ -6,9 +6,9 @@
 %
 %   fgrd     --- the FVCOM grd file (dat)
 %   fdep     --- the FVCOM dep file (dat)
+%   fgrid    --- the file containing the FVCOM grid (nc, grd, or 2dm)
+%    (give either fgrd+fdep or fgrid containing both grid and depth)
 %   fsigma   --- the FVCOM sigma file (dat)
-%   fgrid    --- the file containing the FVCOM grid and depth (nc, grd, or 2dm)
-%    (use either fgrd+fdep+fsigma or fgrid containing both grid and depth)
 %   fout     --- nesting grid output file name and path (mat)
 %   obc_node --- the FVCOM open boundary node id
 %   n_layer  --- number of nesting cell layers
@@ -32,9 +32,9 @@ clear
 % Input
 fgrd = '../data/gom7_grd.dat';
 fdep = '../data/gom7_dep.dat';
-fsigma = '../data/gom7_sigma.dat';
 fgrid = '';
-fout = '../output/gom7_nesting_grid.mat';
+fsigma = '../data/gom7_sigma.dat';
+fout = '../output/gom7_nesting_grid_e.mat';
 obc_node = 1 : 130;
 n_layer = 5;
 %--------------------------------------------------------------------------
@@ -45,14 +45,18 @@ if isempty(fgrid)
     [x, y, nv] = read_grd(fgrd);
     h = read_dep(fdep);
     f = f_load_grid(x, y, nv, h);
-    sigma = read_sigma(fsigma);
-    f = f_calc_sigma(f, sigma);
 else
     f = f_load_grid(fgrid);
 end
+sigma = read_sigma(fsigma);
+f = f_calc_sigma(f, sigma);
+
 
 % Find out the nesting boundary nodes and cells
-[node_layer, cell_layer, node_weight, cell_weight] = f_find_nesting(f, obc_node, n_layer);
+% [node_layer, cell_layer, node_weight, cell_weight] = f_find_nesting(f, obc_node, n_layer);
+[node_layer, cell_layer, node_weight, cell_weight] = f_find_nesting(f, obc_node, n_layer, ...
+                                                                    'Node_Weight', [1 0.8 0.4 0.1 0.05 0.01], ...
+                                                                    'Cell_Weight', [1 0.8 0.4 0.1 0.05]);
 fn = f_load_grid_nesting(f, [node_layer{:}], [cell_layer{:}], ...
                          'Node_weight', [node_weight{:}],     ...
                          'Cell_weight', [cell_weight{:}]);
@@ -62,7 +66,7 @@ fn = f_load_grid_nesting(f, [node_layer{:}], [cell_layer{:}], ...
 save(fout, 'fn');
 
 % Draw figure
-cm = cm_load('Blues', 'NColor', n_layer, 'Flip');
+cm = cm_load('Blues', 'NColor', 5, 'Flip');
 close all
 figure
 hold on
@@ -82,6 +86,6 @@ ylabel('Y (1x10^2 km)')
 mf_xtick_scale(gca, 1e-5)
 mf_ytick_scale(gca, 1e-5)
 title('Nesting node relaxation weight')
-% mf_save('mesh_layers.png')
+% mf_save('mesh_5_layers.png')
 
 

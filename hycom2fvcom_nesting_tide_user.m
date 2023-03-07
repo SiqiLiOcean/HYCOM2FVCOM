@@ -3,11 +3,10 @@
 %   Write tide structure file of nesting nodes and cells
 %
 % input  :
-%   fnesting   --- nesting grid structure (from hycom2fvcom_nesting_select.m)
+%   fnesting   --- nesting grid structure
 %   ftide_zeta --- ASCII tidal zeta
 %   ftide_uv   --- ASCII tidal uv
-%   tide_name  --- tide name (string array)
-%   tide_freq  --- tide frequency (number array)
+%   tides      --- tide name (string array)
 %   fout       --- tide output file path and name
 % 
 % output :
@@ -17,7 +16,7 @@
 % 2023-01-07
 %
 % Updates:
-%
+% 2023-02-02  Siqi Li  Use create_tidestruc to create tide structure
 %==========================================================================
 addpath('~/tools/matFVCOM')
 addpath('~/tools/t_tide')
@@ -30,59 +29,62 @@ clear
 fnesting = '../output/gom7_nesting_grid.mat';
 ftide_zeta = '../data/tide_ellip_results/amppha_muti.dat';
 ftide_uv = '../data/tide_ellip_results/tide_ellip/tide_uv.dat';
-tide_name = ["M2" "N2" "S2" "K2" "K1" "O1" "P1" "Q1"];
-tide_freq = [ 0.08051140; 0.07899925; 0.08333333; 0.08356149;
-              0.04178075; 0.03873065; 0.04155259; 0.03721850];
+tides = ["S2" "M2" "N2" "K1" "O1" "K2" "P1" "Q1"];
 fout = '../output/gom7_nesting_tide.mat';
 
 % Read the fvcom nesting grid
 load(fnesting);
+% Get the longitudes and latitudes of nesting nodes and cells
+% --- For Spherical Coordinate
+% nesting_lon = fn.x;
+% nesting_lat = fn.y;
+% nesting_lonc = fn.xc;
+% nesting_latc = fn.yc;
+% --- For Cartisian Coordinate 
+% (required to modified the following based on your own domain)
+[nesting_lon, nesting_lat] = sp_proj('1802', 'inverse', fn.x, fn.y, 'm');
+[nesting_lonc, nesting_latc] = sp_proj('1802', 'inverse', fn.xc, fn.yc, 'm');
 
-% Creating tide name matrix
-name = [];
-for k = 1 : length(tide_name)
-    name = [name; pad(tide_name{k}, 4)];
-end
 
 % Read the elevation components
-tide_zeta = load(ftide_zeta);
-tide_zeta = tide_zeta(:, 1:18);
+data = load(ftide_zeta);
+x_zeta = data(:,1);
+y_zeta = data(:,2);
+[lon_zeta, lat_zeta] = sp_proj('1802', 'inverse', x_zeta, y_zeta, 'm');
+tide_zeta = data(:, 3:18);
 
 % Creating the tide_zeta struct for t_tide
+id = knnsearch([lon_zeta lat_zeta], [nesting_lon nesting_lat]);
 for i = 1 : fn.node
-    tide_zeta_struct(i,1).name = name;
-    tide_zeta_struct(i,1).freq = tide_freq;
-    
-    inode = fn.nesting_node(i);
-    tide_zeta_struct(i,1).tidecon(:,1) = tide_zeta(inode, 3:2:end);
-    tide_zeta_struct(i,1).tidecon(:,3) = tide_zeta(inode, 4:2:end);
-    tide_zeta_struct(i,1).tidecon(:,2) = 0.002;
-    tide_zeta_struct(i,1).tidecon(:,4) = 20;
+%     inode = fn.nesting_node(i);
+    inode = id(i);
+    tide_zeta_struct(i,1) = create_tidestruc(tides, ...
+                                             tide_zeta(inode,1:2:end), ...
+                                             tide_zeta(inode,2:2:end));
 end
     
 
 
 % Read the vector componenets
-tide_uv = load(ftide_uv);
-tide_uv = tide_uv(:,7:end);
-written_nele = size(tide_uv,1) / fn.kbm1;
+data = load(ftide_uv);
+lon_uv = data(:,3);
+lat_uv = data(:,4);
+tide_uv = data(:,7:end);
+written_nele = size(data,1) / fn.kbm1;
 
 % Creating the tide_uv struct for t_tide
+idc = knnsearch([lon_uv lat_uv], [nesting_lonc nesting_latc]);
 for iz = 1:fn.kbm1
+    disp(['---' num2str(iz)])
     for j = 1:fn.nele
-        tide_uv_struct(j,iz).name = name;
-        tide_uv_struct(j,iz).freq = tide_freq;
-
+%         icell = fn.nesting_cell(j);
+        icell = idc(j);
         tmp = tide_uv((iz-1)*written_nele+1:iz*written_nele,:);
-        icell = fn.nesting_cell(j);
-        tide_uv_struct(j,iz).tidecon(:,1) = tmp(icell,1:4:end);
-        tide_uv_struct(j,iz).tidecon(:,2) = 0.002;
-        tide_uv_struct(j,iz).tidecon(:,3) = tmp(icell,2:4:end);
-        tide_uv_struct(j,iz).tidecon(:,4) = 0.002;
-        tide_uv_struct(j,iz).tidecon(:,5) = tmp(icell,3:4:end);
-        tide_uv_struct(j,iz).tidecon(:,6) = 20;
-        tide_uv_struct(j,iz).tidecon(:,7) = tmp(icell,4:4:end);
-        tide_uv_struct(j,iz).tidecon(:,8) = 20;
+        tide_uv_struct(j,iz) = create_tidestruc(tides, ...
+                                                tmp(icell,1:4:end), ...
+                                                tmp(icell,2:4:end), ...
+                                                tmp(icell,3:4:end), ...
+                                                tmp(icell,4:4:end));
     end
 end
 
