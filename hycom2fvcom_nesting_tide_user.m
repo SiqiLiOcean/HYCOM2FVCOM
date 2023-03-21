@@ -17,6 +17,7 @@
 %
 % Updates:
 % 2023-02-02  Siqi Li  Use create_tidestruc to create tide structure
+% 2023-03-21  Siqi Li  knnsearch -> ksearch
 %==========================================================================
 addpath('~/tools/matFVCOM')
 addpath('~/tools/t_tide')
@@ -54,7 +55,7 @@ y_zeta = data(:,2);
 tide_zeta = data(:, 3:18);
 
 % Creating the tide_zeta struct for t_tide
-id = knnsearch([lon_zeta lat_zeta], [nesting_lon nesting_lat]);
+id = ksearch([lon_zeta lat_zeta], [nesting_lon nesting_lat]);
 for i = 1 : fn.node
 %     inode = fn.nesting_node(i);
     inode = id(i);
@@ -73,7 +74,7 @@ tide_uv = data(:,7:end);
 written_nele = size(data,1) / fn.kbm1;
 
 % Creating the tide_uv struct for t_tide
-idc = knnsearch([lon_uv lat_uv], [nesting_lonc nesting_latc]);
+idc = ksearch([lon_uv lat_uv], [nesting_lonc nesting_latc]);
 for iz = 1:fn.kbm1
     disp(['---' num2str(iz)])
     for j = 1:fn.nele
