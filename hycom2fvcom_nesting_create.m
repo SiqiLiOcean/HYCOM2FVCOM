@@ -31,6 +31,7 @@
 % 2023-03-02  Siqi Li  Added low-pass filter for elevation and currents
 % 2023-03-04  Siqi Li  Added an option to adjust HYCOM elevation reference
 %                      level
+% 2023-03-21  Siqi Li  knnsearch --> ksearch
 %==========================================================================
 addpath('~/tools/matFVCOM')
 addpath('~/tools/t_tide')
@@ -167,7 +168,7 @@ for it = 1 : nt_hycom
     % Node
     i_land = find(isnan(t1(:,1)));
     i_ocean = find(~isnan(t1(:,1)));
-    k_land = knnsearch([fn.x(i_ocean) fn.y(i_ocean)], [fn.x(i_land) fn.y(i_land)], 'K', 2);
+    k_land = ksearch([fn.x(i_ocean) fn.y(i_ocean)], [fn.x(i_land) fn.y(i_land)], 'K', 2);
     k_land = i_ocean(k_land(:,2));
     zeta2(i_land) = zeta2(k_land);
     t2(i_land,:) = t2(k_land,:);
@@ -175,7 +176,7 @@ for it = 1 : nt_hycom
     % Cell
     ic_land = find(isnan(u1(:,1)));
     ic_ocean = find(~isnan(u1(:,1)));
-    kc_land = knnsearch([fn.xc(ic_ocean) fn.yc(ic_ocean) ], [fn.xc(ic_land) fn.yc(ic_land)], 'K', 2);
+    kc_land = ksearch([fn.xc(ic_ocean) fn.yc(ic_ocean) ], [fn.xc(ic_land) fn.yc(ic_land)], 'K', 2);
     kc_land = ic_ocean(kc_land(:,2));
     u2(ic_land,:) = u2(kc_land,:);
     v2(ic_land,:) = v2(kc_land,:);
