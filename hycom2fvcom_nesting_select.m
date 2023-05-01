@@ -43,7 +43,7 @@ n_layer = 5;
 % Read FVCOM grid and sigma
 if isempty(fgrid)
     [x, y, nv] = read_grd(fgrd);
-    h = read_dep(fdep);
+    [~, ~, h] = read_dep(fdep);
     f = f_load_grid(x, y, nv, h);
 else
     f = f_load_grid(fgrid);
