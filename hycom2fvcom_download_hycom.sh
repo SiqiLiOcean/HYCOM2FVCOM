@@ -139,7 +139,7 @@ while [ $t -le $t2 ]; do
   # File name
   fout=${outdir}/hycom_${yyyy}${mm}${dd}_${HH}00.nc
 
-  wget -q ${url} -O ${fout} -o - 
+  wget --timeout=20 --tries=10 --retry-connrefused -q ${url} -O ${fout} -o - 
 #  echo ${url}
   echo
   echo
