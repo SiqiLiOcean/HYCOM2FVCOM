@@ -145,10 +145,10 @@ for it = 1 : nt_hycom
 
     % Read the data
     zeta0 = ncread(fzeta, 'surf_el');
-    t0 = ncread(fzeta, 'water_temp');
-    s0 = ncread(fzeta, 'salinity');
-    u0 = ncread(fzeta, 'water_u');
-    v0 = ncread(fzeta, 'water_v');
+    t0 = ncread(fts, 'water_temp');
+    s0 = ncread(fts, 'salinity');
+    u0 = ncread(fuv, 'water_u');
+    v0 = ncread(fuv, 'water_v');
 
     % Horizontal interpolation
     zeta1 = interp_2d_via_weight(zeta0, wh_node);
